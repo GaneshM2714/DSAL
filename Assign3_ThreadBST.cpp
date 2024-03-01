@@ -6,43 +6,15 @@ class Node
     int data;
     Node *left;
     Node *right;
-    bool lbit, rbit;
+    bool lthread, rthread;
 
 public:
-    Node(int val)
-    {
-        data = val;
-        left = NULL;
-        right = NULL;
-        lbit = 0;
-        rbit = 0;
-    }
     friend class TBST;
 };
 
 class TBST
 {
-    Node *root;
-    void displayTree(Node *root, int spaces)
-    {
-        if (root->lbit || root->rbit)
-        {
-            return;
-        }
-
-        spaces += 5;
-
-        displayTree(root->left, spaces);
-
-        cout << endl;
-        for (int i = 5; i < spaces; i++)
-        {
-            cout << " ";
-        }
-        cout << root->data << endl;
-
-        displayTree(root->right, spaces);
-    }
+    Node *root = new Node;
 
 public:
     Node *create()
@@ -51,78 +23,202 @@ public:
         return root;
     }
     void insert(Node *&root, int val)
-{
-    Node *curr = root;
-    Node *prev = nullptr;  // Track the parent of the current node
-
-    while (curr != nullptr)
     {
-        prev = curr;
-        if (val == curr->data)
+        Node *curr = root;
+        Node *prev = nullptr;
+        while (curr != nullptr)
         {
-            // Node with the same value already exists, handle accordingly
-            return;
-        }
-        else if (val < curr->data)
-        {
-            if (!curr->lbit)
+            prev = curr;
+            if (val == curr->data)
             {
-                curr = curr->left;
+                return;
+            }
+            else if (val < curr->data)
+            {
+                if (curr->lthread == false)
+                {
+                    curr = curr->left;
+                }
+                else
+                {
+                    break;
+                }
             }
             else
             {
-                break;
+                if (curr->rthread == false)
+                {
+                    curr = curr->right;
+                }
+                else
+                {
+                    break;
+                }
             }
+        }
+
+        Node *node = new Node;
+        node->data = val;
+        node->lthread = true;
+        node->rthread = true;
+        if (prev == nullptr)
+        {
+            // The tree is empty, set the new node as the root
+            root = node;
+            node->left = NULL;
+            node->right = NULL;
+        }
+        else if (val < prev->data)
+        {
+            node->left = prev->left;
+            node->right = prev;
+            prev->left = node;
+            prev->lthread = false;
         }
         else
         {
-            if (!curr->rbit)
+            node->right = prev->right;
+            node->left = prev;
+            prev->right = node;
+            prev->rthread = false;
+        }
+    }
+
+    Node *inorderSuccessor(Node *ptr)
+    {
+
+        if (ptr->rthread == true)
+            return ptr->right;
+        ptr = ptr->right;
+
+        while (ptr->lthread == false)
+            ptr = ptr->left;
+        return ptr;
+    }
+
+    void inorder(Node *root)
+    {
+        if (root == NULL)
+            cout << "Tree is empty" << endl;
+
+        Node *ptr = root;
+        while (ptr->lthread == false)
+            ptr = ptr->left;
+
+        while (ptr != NULL)
+        {
+            cout << ptr->data << " ";
+            ptr = inorderSuccessor(ptr);
+        }
+    }
+
+    void preorder(Node *root)
+    {
+        if (root == NULL)
+        {
+            cout << "tree is empty \n";
+        }
+        else
+        {
+            while (root != NULL)
             {
-                curr = curr->right;
-            }
-            else
-            {
-                break;
+                cout << root->data << " ";
+                if (root->lthread == false)
+                {
+                    root = root->left;
+                }
+                else if (root->rthread == false)
+                {
+                    root = root->right;
+                }
+                else
+                {
+                    while (root != NULL && root->rthread == true)
+                    {
+                        root = inorderSuccessor(root);
+                    }
+                    if (root != NULL)
+                    {
+                        root = root->right;
+                    }
+                }
             }
         }
     }
 
-    Node *node = new Node(val);
-    if (prev == nullptr)
+    void deletenode(Node *root, int val)
     {
-        // The tree is empty, set the new node as the root
-        root = node;
-    }
-    else if (val < prev->data)
-    {
-        node->left = prev->left;
-        node->right = prev;
-        prev->left = node;
-        prev->lbit = 1;
-    }
-    else
-    {
-        node->right = prev->right;
-        node->left = prev;
-        prev->right = node;
-        prev->rbit = 1;
-    }
-}
+        if (root == NULL)
+        {
+            cout << "Tree is Empty!" << endl;
+            return;
+        }
+        while (root != NULL)
+        {
+            if (root->data == val)
+            {
+                break;
+            }
+            else if (root->data > val)
+            {
+                if (root->lthread == false)
+                {
+                    root = root->left;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {
+                if (root->rthread==false){
+                    root=root->right;
+                }
+                else{
+                    break;
+                }
+            }
+        }
+        if (root->rthread && root->lthread)
+        {   
 
-    void display(Node *root)
-    {
-        cout << "Binary Tree:" << endl;
-        displayTree(root, 0);
+            delete root;
+            return;
+        }
+        else if ((root->lthread && !(root->rthread)) || (!(root->lthread) && root->rthread))
+        {
+            deleteonechild(root);
+            return;
+        }
+        else
+        {
+            deletetwochildren(root);
+            return;
+        }
     }
-    Node *getRoot()
-    {
-        return root;
+    void deleteonechild(Node* root){
+        if (root->lthread==false){
+            root->data=root->left->data;
+            root->lthread=root->left->lthread;
+            delete root->left;
+        }
+        else{
+            root->data=root->right->data;
+            root->rthread=root->right->rthread;
+            delete root->right;
+        }
+    }
+    void deletetwochildren(Node* root){
+        Node* ptr=inorderSuccessor(root);
+        root->data=ptr->data;
+        root->rthread=ptr->rthread;
     }
 };
 
 int main()
 {
-    Node *root=NULL;
+    Node *root = NULL;
     TBST t;
 
     int ch;
@@ -132,12 +228,10 @@ int main()
         cout << "Enter a choice: " << endl;
         cout << "1. Create TBST" << endl;
         cout << "2. Insert a node" << endl;
-        cout << "3. Count the number of nodes in the longest path" << endl;
-        cout << "4. Find the minimum and maximum data value" << endl;
-        cout << "5. Swap pointers at every node" << endl;
-        cout << "6. Search for an element" << endl;
-        cout << "7. Exit" << endl;
-        cout << "8.Display Tree" << endl;
+        cout << "3. Inorder Traversal" << endl;
+        cout << "4. Preorder Traversal" << endl;
+        cout << "5. Delete a node" << endl;
+        cout << "6. Exit" << endl;
         cout << "\nEnter your choice: ";
         cin >> ch;
 
@@ -153,13 +247,15 @@ int main()
             cin >> val;
             t.insert(root, val);
             break;
-        case 8:
-        {
-            cout << "Displaying Binary Tree: " << endl;
-            t.display(root);
+        case 3:
+            cout << "Inorder Traversal: " << endl;
+            t.inorder(root);
             break;
-        }
-        case 10:
+        case 4:
+            cout << "Preorder Traversal: " << endl;
+            t.preorder(root);
+            break;
+        case 6:
             exit(0);
             break;
         default:
